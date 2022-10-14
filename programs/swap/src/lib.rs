@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use num_derive::*;
 use num_traits::*;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("BGZUDzLhypJ4YX9kyZxWUF8oMKZgw9BPVqmfTganqpXg");
 
 #[program]
 mod tic_tac_toe {
@@ -10,8 +10,21 @@ mod tic_tac_toe {
     pub fn setup_game(ctx: Context<SetupGame>, player_two: Pubkey) -> Result<()> {
         ctx.accounts.game.start([ctx.accounts.player_one.key(), player_two])
     }
+    pub fn play(ctx: Context<Play>, tile: Tile) -> Result<()> {
+        let game = &mut ctx.accounts.game;
     
+        require_keys_eq!(
+            game.current_player(),
+            ctx.accounts.player.key(),
+            TicTacToeError::NotPlayersTurn
+        );
+    
+        game.play(&tile)
+    }    
 }
+
+
+// account
 
 #[account]
 pub struct Game {
@@ -159,6 +172,8 @@ pub enum TicTacToeError {
     GameAlreadyStarted
 }
 
+// accounts
+
 #[derive(Accounts)]
 pub struct SetupGame<'info> {
     #[account(init, payer = player_one, space =  8 + Game::MAXIMUM_SIZE)]
@@ -168,3 +183,9 @@ pub struct SetupGame<'info> {
     pub system_program: Program<'info, System>
 }
 
+#[derive(Accounts)]
+pub struct Play<'info> {
+    #[account(mut)]
+    pub game: Account<'info, Game>,
+    pub player: Signer<'info>,
+}
